@@ -10,22 +10,55 @@
     
   <body>
   <?php
+session_start();
+
+// Change these for your own login
+$admin_user = "admin";
+$admin_pass = "12345"; // change this password
+
+// If already logged in → redirect to admin page
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+    header("Location: admin.php");
+    exit;
+}
+
+// Handle login form
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = $_POST['name'];
-    $phone = $_POST['phone'];
-    $trxid = $_POST['trxid'];
-    $amount = $_POST['amount'];
-    $job_title = $_POST['job_title'];
+    $username = $_POST['username'];
+    $password = $_POST['password'];
 
-    $file = fopen("payments.csv", "a");
-    fputcsv($file, [$name, $phone, $trxid, $amount, $job_title, "Pending"]);
-    fclose($file);
-
-    echo "<h2>✅ Payment submitted successfully!</h2>
-     "<p>We will verify your transaction and approve your post soon.</p>
-  <a href='payment.html'>Go Back
+    if ($username === $admin_user && $password === $admin_pass) {
+        $_SESSION['logged_in'] = true;
+        header("Location: admin.php");
+        exit;
+    } else {
+        $error = "❌ Invalid username or password!";
+    }
 }
 ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Login</title>
+  <style>
+    body {font-family: Arial; background:#f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh;}
+    form {background:#fff; padding:30px; border-radius:10px; box-shadow:0 0 10px #ccc; width:300px;}
+    input {width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:5px;}
+    button {width:100%; padding:10px; background:#e2136e; color:#fff; border:none; border-radius:5px; font-weight:bold;}
+    .error {color:red; text-align:center;}
+  </style>
+</head>
+<body>
+  <form method="POST">
+    <h2>🔒 Admin Login</h2>
+    <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+    <input type="text" name="username" placeholder="Username" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+  </form>
+</body>
+</html>
     
   </body>
   
