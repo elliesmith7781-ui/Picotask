@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <?php
+session_start();
+
+// Redirect if not logged in
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+
+$file = "payments.csv";
+if (!file_exists($file)) {
+    file_put_contents($file, "");
+}
+
+// Handle approve/reject actions
+if (isset($_POST['action']) && isset($_POST['index'])) {
+    $rows = array_map('str_getcsv', file($file));
+    $index = (int)$_POST['index'];
+    $action = $_POST['action'];
+
+    if (isset($rows[$index])) {
+        $rows[$index][5] = ($action == 'approve') ? "Approved ✅" : "Rejected ❌";
+        $fp = fopen($file, "w");
+        foreach ($rows as $r) {
+            fputcsv($fp, $r);
+        }
+        fclose($fp);
+    }
+}
+
+// Handle logout
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: login.php");
+    exit;
+}
+
+$rows = array_map('str_getcsv', file($file));
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <style>
+    body {font-family: Arial; background:#f1f1f1; padding:20px;}
+    table {width:100%; border-collapse:collapse; background:#fff;}
+    th, td {border:1px solid #ddd; padding:8px; text-align:center;}
+    th {background:#e2136e; color:white;}
+    form {display:inline;}
+    button {padding:5px 10px; border:none; border-radius:5px; cursor:pointer;}
+    .approve {background:#28a745; color:#fff;}
+    .reject {background:#dc3545; color:#fff;}
+    .logout {float:right; background:#555; color:white; padding:8px 12px; border-radius:5px; text-decoration:none;}
+  </style>
+</head>
+<body>
+  <a href="?logout=true" class="logout">Logout</a>
+  <h2>💼 Payment Approval Dashboard</h2>
+  <table>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>TrxID</th>
+      <th>Amount</th>
+      <th>Job Title</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+    <?php foreach ($rows as $i => $r): ?>
+      <?php if (count($r) >= 6): ?>
+        <tr>
+          <td><?= $i+1 ?></td>
+          <td><?= htmlspecialchars($r[0]) ?></td>
+          <td><?= htmlspecialchars($r[1]) ?></td>
+          <td><?= htmlspecialchars($r[2]) ?></td>
+          <td><?= htmlspecialchars($r[3]) ?></td>
+          <td><?= htmlspecialchars($r[4]) ?></td>
+          <td><?= htmlspecialchars($r[5]) ?></td>
+          <td>
+            <form method="POST">
+              <input type="hidden" name="index" value="<?= $i ?>">
+              <button class="approve" name="action" value="approve">Approve</button>
+            </form>
+            <form method="POST">
+              <input type="hidden" name="index" value="<?= $i ?>">
+              <button class="reject" name="action" value="reject">Reject</button>
+            </form>
+          </td>
+        </tr>
+      <?php endif; ?>
+    <?php endforeach; ?>
+  </table>
+</body>
+</html>
+    
+  </body>
+  
+</html>
