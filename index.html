@@ -3,1378 +3,594 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Picotask | Connect, Create, Complete, and Earn Your Way</title>
-    <!-- Load Tailwind CSS -->
+    <title>Picotask Admin Panel (Environment Ready)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles for the glossy/creamy look and Inter font */
-        :root {
-            --color-background: #FFFBEB; /* Light yellow/cream base */
-            --color-primary: #FFC300; /* Primary accent yellow */
-            --color-accent: #FFD60A; /* A slightly glossy yellow */
-        }
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--color-background);
-            color: #1f2937; /* Dark text for high contrast */
+            background-color: #f7f9fb;
         }
-        .glossy-button {
-            transition: all 0.2s ease-in-out;
-            background-image: linear-gradient(145deg, var(--color-primary) 0%, var(--color-accent) 100%);
-            box-shadow: 0 4px 15px rgba(255, 195, 0, 0.4);
+        .card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
         }
-        .glossy-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 195, 0, 0.6);
+        .task-item {
+            border-left-width: 4px;
         }
-        .glossy-card {
-            background-color: white;
-            transition: all 0.3s;
+        .status-pending { border-color: #f59e0b; }
+        .status-approved { border-color: #10b981; }
+        .status-rejected { border-color: #ef4444; }
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
         }
-        .glossy-card:hover {
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            transform: translateY(-5px);
-        }
-        /* Style for copy button feedback */
-        .copy-success {
-            background-color: #10B981; /* Green-500 */
-        }
-        .task-list-item {
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            gap: 1rem;
-            align-items: center;
-        }
-        @media (max-width: 640px) {
-            .task-list-item {
-                grid-template-columns: 1fr;
-            }
-            .task-list-item > button {
-                width: 100%;
-            }
+        .modal-content {
+            transition: transform 0.3s ease;
         }
     </style>
-    <script>
-        // Tailwind configuration for custom colors
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': 'var(--color-primary)',
-                        'background': 'var(--color-background)',
-                        'accent': 'var(--color-accent)',
-                    },
-                },
-            }
-        }
-    </script>
 </head>
 <body class="min-h-screen">
 
-    <!-- Navigation Bar -->
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-sm shadow-md rounded-b-xl">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <a href="#" class="text-2xl font-black tracking-tighter text-gray-800 flex items-center" onclick="showView('landing-page')">
-                    <span class="text-primary mr-1">Pico</span>task
-                </a>
-
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex space-x-8 items-center" id="nav-desktop">
-                    <!-- Nav links shown when logged OUT -->
-                    <div id="nav-logged-out" class="flex space-x-8 items-center">
-                        <a href="#features" class="text-gray-600 hover:text-primary transition duration-150">Features</a>
-                        <button onclick="openAuthModal('Login')" class="text-gray-600 hover:text-primary transition duration-150">Login</button>
-                        <button onclick="openAuthModal('Sign Up')" class="glossy-button text-white px-4 py-2 rounded-lg font-semibold shadow-lg">
-                            Sign Up
-                        </button>
-                    </div>
-
-                    <!-- Nav links shown when logged IN -->
-                    <div id="nav-logged-in" class="hidden flex space-x-8 items-center">
-                        <a href="#" class="text-gray-600 hover:text-primary transition duration-150" onclick="showView('dashboard')">Dashboard</a>
-                        <a href="#" class="text-gray-600 hover:text-primary transition duration-150" onclick="showView('tasks-view')">Tasks</a>
-                        <button onclick="handleLogout()" class="text-white bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-semibold shadow-lg transition">
-                            Logout
-                        </button>
-                    </div>
-                </nav>
-
-                <!-- Mobile Menu Button -->
-                <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-yellow-100 transition duration-150" aria-label="Toggle menu">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
+    <!-- Login Modal (Displayed by default) -->
+    <div id="loginGate" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+            <h2 class="text-3xl font-extrabold text-indigo-600 mb-4">Admin Access</h2>
+            <p class="text-gray-600 mb-6">Enter the administrator password to continue.</p>
+            <form id="loginForm">
+                <input type="password" id="adminPassword" placeholder="Password" class="w-full border border-gray-300 rounded-md p-3 mb-4 focus:ring-indigo-500 focus:border-indigo-500" required>
+                <button type="submit" class="w-full py-3 px-4 border border-transparent rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 font-semibold">
+                    Login
+                </button>
+                <p id="loginMessage" class="mt-4 text-center text-sm text-red-500 hidden"></p>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Task Details Modal (Hidden by default) -->
+    <div id="taskDetailsModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center z-50 invisible opacity-0" onclick="hideTaskDetails()">
+        <div class="modal-content bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg mx-4 transform translate-y-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-2xl font-bold text-gray-800">Task Details</h3>
+                <button onclick="hideTaskDetails()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div id="modalDetailsContent" class="space-y-4 text-gray-700">
+                <!-- Details will be injected here -->
+            </div>
+            <div class="mt-6 pt-4 border-t flex justify-end">
+                <button onclick="hideTaskDetails()" class="py-2 px-4 border border-transparent rounded-md text-sm font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 transition duration-150">
+                    Close
                 </button>
             </div>
         </div>
+    </div>
 
-        <!-- Mobile Menu (Hidden by default) -->
-        <div id="mobile-menu" class="hidden md:hidden absolute w-full bg-white shadow-xl rounded-b-xl pb-2">
-             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="#features" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-yellow-50" onclick="hideMobileMenu()">Features</a>
-                <button onclick="openAuthModal('Login'); hideMobileMenu();" id="mobile-login-btn" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-yellow-50">Login</button>
-                <button onclick="openAuthModal('Sign Up'); hideMobileMenu();" id="mobile-signup-btn" class="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-white bg-primary hover:bg-accent transition glossy-button">
-                    Sign Up
-                </button>
-                <button onclick="handleLogout(); hideMobileMenu();" id="mobile-logout-btn" class="w-full text-left hidden px-3 py-2 rounded-md text-base font-medium text-white bg-red-500 hover:bg-red-600 transition">
-                    Logout
-                </button>
-            </div>
-        </div>
-    </header>
 
-    <!-- --- Main Content Container: Landing Page View (Default) --- -->
-    <div id="landing-page-content" class="min-h-screen">
-        <main class="py-12 sm:py-20">
-            <!-- Hero Section -->
-            <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-20">
-                <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight text-gray-900 mb-6">
-                    Your Global Micro-Task Hub
+    <!-- Main Dashboard Content -->
+    <div id="dashboardContainer" class="hidden">
+        <!-- Main Navigation/Header -->
+        <header class="bg-white shadow-md p-4 sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-indigo-600">
+                    Picotask Admin
                 </h1>
-                <p class="mt-3 text-2xl sm:text-3xl text-gray-700 font-medium">
-                    <span class="font-bold text-primary">Connect, Create, Complete,</span> and Earn Your Way.
-                </p>
-                <p class="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
-                    Access a worldwide pool of talent or complete small tasks for instant earnings, starting with withdrawals as low as 50 Taka.
-                </p>
-                <div class="mt-10 flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-                    <button onclick="openAuthModal('Sign Up')" class="glossy-button text-white px-8 py-3 rounded-xl text-lg font-bold shadow-2xl shadow-primary/50">
-                        Start Earning Today
-                    </button>
-                    <a href="#features" class="inline-flex items-center justify-center px-8 py-3 border border-primary/50 text-base font-medium rounded-xl text-primary bg-white hover:bg-yellow-50 transition duration-300">
-                        <i data-lucide="zap" class="w-5 h-5 mr-2"></i>
-                        Discover Features
-                    </a>
+                <div id="authStatus" class="text-sm text-gray-500 flex items-center">
+                    <span class="mr-2">User ID:</span>
+                    <span id="userIdDisplay" class="font-mono bg-gray-100 px-2 py-1 rounded text-xs text-gray-700 truncate w-24 sm:w-auto">...</span>
                 </div>
-            </section>
+            </div>
+        </header>
 
-            <!-- Features Section -->
-            <section id="features" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div class="text-center mb-12">
-                    <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Why Choose Picotask?</h2>
-                    <p class="text-xl text-gray-600">The platform built for speed, transparency, and global access.</p>
-                </div>
+        <!-- Main Content Area -->
+        <main class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-6">Task Management Dashboard</h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <!-- Feature 1: Connect -->
-                    <div class="glossy-card p-6 rounded-xl shadow-lg border border-yellow-100">
-                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
-                            <i data-lucide="users" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Connect Globally</h3>
-                        <p class="text-gray-600">Instantly connect with micro-workers and employers from over 150 countries. Our platform is truly international.</p>
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="text-center p-10 text-lg font-medium text-indigo-500">
+                Initializing Firebase & Security Check...
+            </div>
+
+            <!-- Dashboard Content -->
+            <div id="dashboardContent" class="hidden">
+
+                <!-- Task Management Section -->
+                <section class="mb-8">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Pending and Reviewed Tasks</h3>
+                    <div id="tasksList" class="space-y-4">
+                        <p class="text-gray-500">Loading tasks...</p>
                     </div>
+                </section>
 
-                    <!-- Feature 2: Earn Your Way (Low Withdrawal) -->
-                    <div class="glossy-card p-6 rounded-xl shadow-lg border border-yellow-100">
-                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
-                            <i data-lucide="wallet" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Low Withdrawal Limit</h3>
-                        <p class="text-gray-600 font-bold text-xl">
-                            Withdraw your assets from just <span class="text-primary">50 Taka!</span> Get paid quickly and keep your earnings flowing.
+                <!-- Configuration Editor Section -->
+                <section>
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4 mt-8">Website Content Configuration (Private)</h3>
+                    <div class="card bg-white p-6 rounded-xl border border-gray-100">
+                        <p class="text-sm text-gray-500 mb-4">
+                            These private settings control your main website's presentation (e.g., promotional text).
                         </p>
+                        <form id="contentForm">
+                            <div class="mb-4">
+                                <label for="mainTitle" class="block text-sm font-medium text-gray-700 mb-1">Main Site Title (H1)</label>
+                                <input type="text" id="mainTitle" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500" required>
+                            </div>
+                            <button type="submit" id="saveButton" class="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
+                                Save Config
+                            </button>
+                            <p id="saveMessage" class="mt-2 text-sm text-green-600 hidden">Settings updated successfully!</p>
+                        </form>
                     </div>
+                </section>
 
-                    <!-- Feature 3: Currency Flexibility -->
-                    <div class="glossy-card p-6 rounded-xl shadow-lg border border-yellow-100">
-                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
-                            <i data-lucide="dollar-sign" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Every Currency Available</h3>
-                        <p class="text-gray-600">Pay or get paid in your preferred currency. We support all major global payment methods for seamless transactions.</p>
+                <!-- Password Change Section -->
+                <section class="mt-8">
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-4">Admin Password Management</h3>
+                    <div class="card bg-white p-6 rounded-xl border border-gray-100">
+                        <p class="text-sm text-gray-500 mb-4">
+                            Change the administrator access password. The default password is **Farsin Admin**.
+                        </p>
+                        <form id="passwordChangeForm">
+                            <div class="mb-4">
+                                <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                                <input type="password" id="currentPassword" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" required>
+                            </div>
+                            <div class="mb-4">
+                                <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">New Password (Min 6 characters)</label>
+                                <input type="password" id="newPassword" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3" required>
+                            </div>
+                            <button type="submit" id="changePasswordButton" class="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150">
+                                Change Password
+                            </button>
+                            <p id="passwordChangeMessage" class="mt-2 text-sm text-green-600 hidden"></p>
+                        </form>
                     </div>
+                </section>
 
-                    <!-- Feature 4: Create & Complete -->
-                    <div class="glossy-card p-6 rounded-xl shadow-lg border border-yellow-100">
-                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20 text-primary mb-4">
-                            <i data-lucide="check-circle" class="w-6 h-6"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Simple Task Management</h3>
-                        <p class="text-gray-600">Create tasks in minutes and track progress, or browse thousands of simple tasks to complete anytime, anywhere.</p>
-                    </div>
-                </div>
-            </section>
+            </div>
 
-            <!-- CTA Section -->
-            <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-                <div class="bg-white p-10 rounded-3xl shadow-2xl shadow-primary/20 border-t-8 border-primary">
-                    <h3 class="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Ready to Get Started?</h3>
-                    <p class="text-xl text-gray-600 mb-8">Join the community of Picotaskers today. It's fast, flexible, and rewarding.</p>
-                    <button onclick="openAuthModal('Sign Up')" class="glossy-button text-white px-10 py-4 rounded-xl text-xl font-bold shadow-2xl shadow-primary/50">
-                        Join Picotask Now
-                    </button>
-                </div>
-            </section>
+            <!-- Error/Message Display -->
+            <div id="messageBox" class="hidden fixed bottom-4 right-4 text-white p-4 rounded-lg shadow-xl max-w-xs transition-opacity duration-300">
+                <p id="messageText"></p>
+            </div>
+
         </main>
     </div>
 
-    <!-- --- Dashboard View (Initially Hidden) --- -->
-    <div id="dashboard-content" class="hidden min-h-screen p-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 class="text-5xl font-extrabold text-gray-900 mb-4 flex items-center">
-                <i data-lucide="layout-dashboard" class="w-10 h-10 mr-3 text-primary"></i>
-                Your Dashboard
-            </h1>
-            <p class="text-xl text-gray-600 mb-10">Manage your earnings, check your accepted tasks, and find new opportunities.</p>
+    <!-- Firebase Initialization and Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, query, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            <!-- Stats/Balance Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                <div class="glossy-card p-6 rounded-xl shadow-lg border-l-4 border-primary">
-                    <p class="text-sm font-medium text-gray-500">Current Balance</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1 flex items-center">
-                        ৳ <span id="user-balance">0</span>
-                        <i data-lucide="circle-dollar-sign" class="w-6 h-6 ml-2 text-primary"></i>
-                    </p>
-                </div>
-                <div class="glossy-card p-6 rounded-xl shadow-lg border-l-4 border-yellow-500">
-                    <p class="text-sm font-medium text-gray-500">Completed Tasks</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1 flex items-center">
-                        <span id="tasks-completed">0</span>
-                        <i data-lucide="clipboard-check" class="w-6 h-6 ml-2 text-yellow-500"></i>
-                    </p>
-                </div>
-                <div class="glossy-card p-6 rounded-xl shadow-lg border-l-4 border-green-500">
-                    <p class="text-sm font-medium text-gray-500">Available Tasks Count</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1 flex items-center">
-                        <span id="tasks-available-count"></span>
-                        <i data-lucide="list-checks" class="w-6 h-6 ml-2 text-green-500"></i>
-                    </p>
-                </div>
-            </div>
+        setLogLevel('Debug');
 
-            <!-- Action Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 mb-12">
-                <button class="glossy-button text-white px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center" onclick="showView('post-task')">
-                    <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
-                    Post a New Task
-                </button>
-                <button class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center transition shadow-md" onclick="showView('tasks-view')">
-                    <i data-lucide="search" class="w-5 h-5 mr-2"></i>
-                    Find Tasks to Complete
-                </button>
-                <button class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center transition shadow-md" onclick="showWithdrawInstructions()">
-                    <i data-lucide="banknote" class="w-5 h-5 mr-2"></i>
-                    Withdraw (min ৳50)
-                </button>
-            </div>
+        // Global Firebase variables
+        let db, auth;
+        let userId = null;
+        let appId = null; 
+        const CONFIG_DOC_PATH = "website_settings/live_config";
+        const TASKS_COLLECTION_PATH = "tasks"; 
 
-            <!-- My Accepted Tasks List -->
-            <div class="bg-white p-6 rounded-xl shadow-2xl border border-yellow-100">
-                <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                    <i data-lucide="list-todo" class="w-6 h-6 mr-2 text-blue-500"></i>
-                    My Accepted Tasks (In Progress)
-                </h2>
-                <div id="accepted-tasks-list" class="space-y-4">
-                    <!-- Tasks will be injected here -->
-                    <p class="text-gray-500 italic">No tasks currently accepted. Go find one!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- --- Tasks View (Initially Hidden) --- -->
-    <div id="tasks-view-content" class="hidden min-h-screen p-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 class="text-5xl font-extrabold text-gray-900 mb-4 flex items-center">
-                <i data-lucide="search-check" class="w-10 h-10 mr-3 text-green-500"></i>
-                Available Micro-Tasks
-            </h1>
-            <p class="text-xl text-gray-600 mb-8">Browse thousands of quick jobs. Accept a task and earn instantly!</p>
+        // Global state for admin key (loaded from Firestore)
+        let adminSecretKey = "Farsin Admin"; 
 
-            <div class="bg-white p-6 rounded-xl shadow-2xl border border-green-100">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">Global Task Feed</h2>
-                
-                <!-- Filtering and Sorting Controls -->
-                <div class="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <!-- Filter by Category -->
-                    <div class="flex-1">
-                        <label for="filter-category" class="block text-sm font-medium text-gray-700">Filter Category:</label>
-                        <select id="filter-category" onchange="renderAvailableTasks()" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
-                            <option value="All">All Categories</option>
-                            <option value="YouTube Tasks">YouTube Tasks (Video Watching)</option>
-                            <option value="Ad Clicks">Ad Clicks / Simple Engagement</option>
-                            <option value="Website Engagement">Website Engagement / Review</option>
-                            <option value="Data Entry">Data Entry / Processing</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Sort By -->
-                    <div class="flex-1">
-                        <label for="sort-by" class="block text-sm font-medium text-gray-700">Sort By:</label>
-                        <select id="sort-by" onchange="renderAvailableTasks()" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary">
-                            <option value="price-desc">Payout (Highest)</option>
-                            <option value="price-asc">Payout (Lowest)</option>
-                            <option value="time-asc">Time (Quickest)</option>
-                            <option value="time-desc">Time (Longest)</option>
-                            <option value="default">Default Order</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="available-tasks-list" class="space-y-4">
-                    <!-- Available tasks will be dynamically rendered here -->
-                    <div class="p-4 text-center text-gray-500 italic">
-                        No tasks are currently available. Post a new task to see the first one appear here!
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- --- Post Task View (New) --- -->
-    <div id="post-task-content" class="hidden min-h-screen p-8">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 class="text-5xl font-extrabold text-gray-900 mb-4 flex items-center">
-                <i data-lucide="package-plus" class="w-10 h-10 mr-3 text-primary"></i>
-                Create a New Task
-            </h1>
-            <p class="text-xl text-gray-600 mb-10">Define your task requirements, set a budget, and launch your project to thousands of workers.</p>
-
-            <div class="bg-white p-6 rounded-xl shadow-2xl border border-primary/20">
-                <form id="task-post-form" onsubmit="submitTaskForPayment(event)">
-                    <div class="space-y-6">
-                        <!-- Task Title -->
-                        <div>
-                            <label for="task-title" class="block text-lg font-medium text-gray-700 mb-1">Task Title (What needs to be done?)</label>
-                            <input type="text" id="task-title" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="e.g., Watch YouTube video & Subscribe" required minlength="10">
-                            <p class="text-xs text-gray-500 mt-1">Keep it concise and action-oriented (min 10 characters).</p>
-                        </div>
-
-                        <!-- Category and Payout -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="task-category" class="block text-lg font-medium text-gray-700 mb-1">Category</label>
-                                <select id="task-category" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
-                                    <option value="" disabled selected>Select a Category</option>
-                                    <option value="YouTube Tasks">YouTube Tasks (Video Watching)</option>
-                                    <option value="Ad Clicks">Ad Clicks / Simple Engagement</option>
-                                    <option value="Website Engagement">Website Engagement / Review</option>
-                                    <option value="Data Entry">Data Entry / Processing</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="task-price" class="block text-lg font-medium text-gray-700 mb-1">Payout Per Task (Taka ৳)</label>
-                                <input type="number" id="task-price" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="e.g., 50" required min="1" max="1000">
-                                <p class="text-xs text-gray-500 mt-1">Recommended ৳1 - ৳1,000 per successful completion.</p>
-                            </div>
-                        </div>
-
-                        <!-- Estimated Time and Total Quantity -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="task-time" class="block text-lg font-medium text-gray-700 mb-1">Estimated Time to Complete</label>
-                                <select id="task-time" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" required>
-                                    <option value="5">~5 minutes</option>
-                                    <option value="10">~10 minutes</option>
-                                    <option value="15" selected>~15 minutes</option>
-                                    <option value="20">~20 minutes</option>
-                                    <option value="30">~30 minutes</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="task-quantity" class="block text-lg font-medium text-gray-700 mb-1">Total Workers Needed (Quantity)</label>
-                                <input type="number" id="task-quantity" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="e.g., 100" required min="1" value="100">
-                                <p class="text-xs text-gray-500 mt-1">This sets the total budget (Price x Quantity).</p>
-                            </div>
-                        </div>
-
-                        <!-- Detailed Instructions -->
-                        <div>
-                            <label for="task-description" class="block text-lg font-medium text-gray-700 mb-1">Detailed Instructions & Proof Requirements</label>
-                            <textarea id="task-description" rows="6" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary" placeholder="Provide a step-by-step guide for the worker. Clearly state the exact proof required for payment (e.g., Completion Code, screenshot link, specific text response)." required minlength="50"></textarea>
-                            <p class="text-xs text-red-500 mt-1">Crucial: Clearly describe the final **Proof** the worker must submit.</p>
-                        </div>
-                        
-                        <!-- Submit Button -->
-                        <button type="submit" class="glossy-button w-full text-white px-8 py-3 rounded-xl text-xl font-bold shadow-2xl shadow-primary/50 flex items-center justify-center">
-                            <i data-lucide="wallet" class="w-6 h-6 mr-2"></i>
-                            Submit Task for Payment
-                        </button>
-                    </div>
-                </form>
-                <div id="form-error-message" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg hidden"></div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Footer (Kept outside main views to always be visible) -->
-    <footer class="bg-gray-800 text-white mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <!-- Column 1: Logo and Info -->
-                <div>
-                    <h4 class="text-2xl font-black tracking-tighter text-primary mb-4">Picotask</h4>
-                    <p class="text-gray-400 text-sm">Connect, Create, Complete, and Earn Your Way.</p>
-                    <p class="text-gray-400 text-sm mt-2">© 2025 Picotask Inc.</p>
-                </div>
-
-                <!-- Column 2: Quick Links -->
-                <div>
-                    <h4 class="text-lg font-semibold mb-4 border-b-2 border-primary pb-1">Platform</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Become a Worker</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition" onclick="showView('post-task')">Post a Task</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Affiliate Program</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">FAQ</a></li>
-                    </ul>
-                </div>
-
-                <!-- Column 3: Legal -->
-                <div>
-                    <h4 class="text-lg font-semibold mb-4 border-b-2 border-primary pb-1">Company</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">About Us</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Careers</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
-                    </ul>
-                </div>
-
-                <!-- Column 4: Contact & Social -->
-                <div>
-                    <h4 class="text-lg font-semibold mb-4 border-b-2 border-primary pb-1">Get In Touch</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-gray-400 hover:text-white transition">Support</a></li>
-                        <li class="flex items-center"><i data-lucide="facebook" class="w-4 h-4 mr-2 text-primary"></i> <a href="https://facebook.com/PicotaskOfficialSupport" target="_blank" class="text-primary hover:text-white font-medium transition">PicotaskOfficialSupport</a></li>
-                        <li class="flex space-x-3 mt-4">
-                            <i data-lucide="facebook" class="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition"></i>
-                            <i data-lucide="twitter" class="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition"></i>
-                            <i data-lucide="instagram" class="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition"></i>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Modal 1: Login/Sign Up/Recovery -->
-    <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[9999] hidden transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md mx-4 glossy-card transform transition-all duration-300 scale-95 opacity-0" id="modal-content">
-            
-            <!-- Auth Form Content -->
-            <div id="auth-form-container">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 id="modal-title" class="text-3xl font-bold text-gray-800">Login</h3>
-                    <button onclick="closeModal('auth')" class="text-gray-500 hover:text-gray-800 transition">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-                <form onsubmit="handleAuth(event)">
-                    <div id="auth-error-message" class="mb-4 p-3 bg-red-100 text-red-700 rounded-lg hidden"></div>
-                    
-                    <div class="mb-4">
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                        <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" placeholder="your@email.com" required>
-                    </div>
-                    <div class="mb-6">
-                        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" placeholder="••••••••" required>
-                    </div>
-                    
-                    <!-- New: Passkey for Sign Up Only -->
-                    <div id="passkey-input-group" class="mb-6 hidden">
-                        <label for="passkey-id" class="block text-sm font-medium text-gray-700 mb-1">Passkey Fingerprint ID (Required for Recovery)</label>
-                        <input type="text" id="passkey-id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" placeholder="12-digit recovery ID">
-                        <p class="text-xs text-gray-500 mt-1">This ID acts as your secure recovery key.</p>
-                    </div>
-
-                    <button type="submit" class="glossy-button w-full text-white px-4 py-2 rounded-xl text-lg font-semibold shadow-lg">
-                        Continue to Picotask
-                    </button>
-                </form>
-
-                <div class="flex justify-between items-center mt-4 text-sm text-gray-500">
-                    <button id="forgot-password-btn" onclick="showRecoveryFlow()" class="text-red-500 hover:text-red-600 font-medium transition hidden">
-                        Forgot Password?
-                    </button>
-                    <div class="ml-auto">
-                        <span id="modal-switch-text">New to Picotask?</span>
-                        <button onclick="toggleModalMode()" class="text-primary hover:text-yellow-600 font-medium ml-1 transition">
-                            <span id="modal-switch-link">Sign Up</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recovery/Reset Content (Initially Hidden) -->
-            <div id="recovery-container" class="hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-3xl font-bold text-gray-800">Password Recovery</h3>
-                    <button onclick="closeModal('auth')" class="text-gray-500 hover:text-gray-800 transition">
-                        <i data-lucide="x" class="w-6 h-6"></i>
-                    </button>
-                </div>
-                <div id="recovery-body" class="space-y-4">
-                    <!-- Content will be injected by recovery functions -->
-                </div>
-            </div>
-
-        </div>
-    </div>
-    
-    <!-- Modal 2: Action Modal (For Payment/Withdrawal Instructions & Task Details) -->
-    <div id="action-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[9999] hidden transition-opacity duration-300">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg mx-4 glossy-card transform transition-all duration-300 scale-95 opacity-0" id="action-modal-content">
-            <div class="flex justify-between items-center mb-6 border-b pb-3">
-                <h3 id="action-modal-title" class="text-3xl font-bold text-gray-800">Action</h3>
-                <button onclick="closeModal('action')" class="text-gray-500 hover:text-gray-800 transition">
-                    <i data-lucide="x" class="w-6 h-6"></i>
-                </button>
-            </div>
-            <div id="action-modal-body" class="space-y-6">
-                <!-- Content injected by JavaScript -->
-            </div>
-        </div>
-    </div>
-
-
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // --- Global State ---
-        let isLoggedIn = false;
-        let userBalance = 0; 
-        
-        // --- Simulated Database for Authentication ---
-        let users = [
-            { email: "worker@example.com", password: "password123", passkey: "123456789012" },
-            { email: "employer@example.com", password: "password123", passkey: "098765432109" }
-        ];
-
-        const landingPage = document.getElementById('landing-page-content');
-        const dashboard = document.getElementById('dashboard-content');
-        const tasksView = document.getElementById('tasks-view-content');
-        const postTaskView = document.getElementById('post-task-content');
-
-        // --- Task State ---
-        let taskIdCounter = 0; // Start at 0 since initial array is empty
-        
-        // Task array is now initialized as empty, as requested
-        let availableTasks = [];
-        let acceptedTasks = [];
-
-
-        // --- Element References ---
-        const navLoggedOut = document.getElementById('nav-logged-out');
-        const navLoggedIn = document.getElementById('nav-logged-in');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileLoginBtn = document.getElementById('mobile-login-btn');
-        const mobileSignupBtn = document.getElementById('mobile-signup-btn');
-        const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
-        
-        const authModal = document.getElementById('auth-modal');
-        const authModalContent = document.getElementById('modal-content');
-        const authFormContainer = document.getElementById('auth-form-container');
-        const recoveryContainer = document.getElementById('recovery-container');
-        const passkeyInputGroup = document.getElementById('passkey-input-group');
-        const forgotPasswordBtn = document.getElementById('forgot-password-btn');
-        const authErrorMessage = document.getElementById('auth-error-message');
-        
-        const actionModal = document.getElementById('action-modal');
-        const actionModalContent = document.getElementById('action-modal-content');
-        const actionModalTitle = document.getElementById('action-modal-title');
-        const actionModalBody = document.getElementById('action-modal-body');
-        const acceptedTasksList = document.getElementById('accepted-tasks-list');
-        const availableTasksList = document.getElementById('available-tasks-list');
-        const availableTasksCount = document.getElementById('tasks-available-count');
-        const formErrorMessage = document.getElementById('form-error-message');
-        
-        // Filter/Sort Elements
-        const filterCategory = document.getElementById('filter-category');
-        const sortBy = document.getElementById('sort-by');
+        // DOM Elements
+        const loginGate = document.getElementById('loginGate');
+        const loginForm = document.getElementById('loginForm');
+        const loginMessage = document.getElementById('loginMessage');
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const dashboardContent = document.getElementById('dashboardContent');
+        const contentForm = document.getElementById('contentForm');
+        const mainTitleInput = document.getElementById('mainTitle');
+        const saveButton = document.getElementById('saveButton');
+        const saveMessage = document.getElementById('saveMessage');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const tasksList = document.getElementById('tasksList');
+        const currentPasswordInput = document.getElementById('currentPassword');
+        const newPasswordInput = document.getElementById('newPassword');
+        const passwordChangeForm = document.getElementById('passwordChangeForm');
+        const passwordChangeMessage = document.getElementById('passwordChangeMessage');
+        const changePasswordButton = document.getElementById('changePasswordButton');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const taskDetailsModal = document.getElementById('taskDetailsModal');
+        const modalDetailsContent = document.getElementById('modalDetailsContent');
 
 
         // --- Utility Functions ---
-        function copyToClipboard(text, buttonElement) {
-            // Use document.execCommand('copy') as navigator.clipboard might not work in some iframes
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            document.body.appendChild(textarea);
-            textarea.select();
-            
+
+        function showMessage(text, isError = false) {
+            messageText.textContent = text;
+            messageBox.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl max-w-xs transition-opacity duration-300 ${isError ? 'bg-red-600' : 'bg-green-600'}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        // --- Path Builders ---
+
+        function getConfigDocRef(uid) {
+            // Path: /artifacts/{appId}/users/{uid}/website_settings/live_config (Private settings)
+            return doc(db, 'artifacts', appId, 'users', uid, CONFIG_DOC_PATH);
+        }
+
+        function getTasksCollectionRef() {
+            // Path: /artifacts/{appId}/public/data/tasks (Public tasks)
+            return collection(db, 'artifacts', appId, 'public', 'data', TASKS_COLLECTION_PATH);
+        }
+
+        function getTaskDocRef(taskId) {
+            return doc(db, 'artifacts', appId, 'public', 'data', TASKS_COLLECTION_PATH, taskId);
+        }
+
+        // --- Authentication & Initialization ---
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('adminPassword').value;
+            loginMessage.classList.add('hidden');
+
+            if (password === adminSecretKey) {
+                loginGate.classList.add('hidden');
+                dashboardContainer.classList.remove('hidden');
+                dashboardContent.classList.remove('hidden');
+                // Start real-time data listeners now that we are authenticated
+                startDataListeners(userId);
+                showMessage("Login successful. Welcome, Admin!");
+            } else {
+                loginMessage.textContent = "Incorrect password. Please try again.";
+                loginMessage.classList.remove('hidden');
+            }
+        }
+
+        async function loadAdminKey(uid) {
             try {
-                document.execCommand('copy');
-                
-                // Visual feedback
-                const originalText = buttonElement.innerHTML;
-                buttonElement.innerHTML = '<i data-lucide="check" class="w-5 h-5 mr-1"></i> Copied!';
-                buttonElement.classList.add('copy-success');
-                buttonElement.classList.remove('bg-gray-200', 'hover:bg-gray-300', 'bg-blue-500', 'hover:bg-blue-600');
-                
-                setTimeout(() => {
-                    buttonElement.innerHTML = originalText;
-                    buttonElement.classList.remove('copy-success');
-                    // Restore original classes based on context (this is a bit simplified for this demo)
-                    if (buttonElement.dataset.context === 'payment') {
-                        buttonElement.classList.add('bg-gray-200', 'hover:bg-gray-300');
-                    } else if (buttonElement.dataset.context === 'details') {
-                        buttonElement.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                const configDocRef = getConfigDocRef(uid);
+                const docSnap = await getDoc(configDocRef);
+
+                if (docSnap.exists() && docSnap.data().adminSecretKey) {
+                    adminSecretKey = docSnap.data().adminSecretKey;
+                } else {
+                    // If no key exists, set the default key and save it
+                    await setDoc(configDocRef, { adminSecretKey: adminSecretKey }, { merge: true });
+                }
+
+                loadingIndicator.classList.add('hidden');
+                loginGate.classList.remove('hidden'); // Show login gate after successful connection and key check
+
+            } catch(error) {
+                 console.error("Error loading admin key:", error);
+                 loadingIndicator.textContent = 'Error loading admin settings. Check console.';
+            }
+        }
+
+
+        async function initializeFirebase() {
+            loadingIndicator.textContent = "Connecting to Firebase...";
+
+            try {
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+                if (!firebaseConfig.apiKey) { throw new Error("Firebase configuration is missing."); }
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // CRITICAL: onAuthStateChanged listener handles the rest of the flow
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        // Once authenticated, load the admin key from the user's private config
+                        loadAdminKey(userId);
+                    } else {
+                        userId = null;
+                        userIdDisplay.textContent = 'Auth Error';
+                        loadingIndicator.textContent = 'Authentication failed. Restart application.';
+                        showMessage("Authentication failed.", true);
                     }
-                    lucide.createIcons(); // Re-render icons after changing innerHTML
-                }, 2000);
-
-            } catch (err) {
-                console.error('Failed to copy text: ', err);
-            } finally {
-                document.body.removeChild(textarea);
-            }
-        }
-        
-        function updateBalanceDisplay() {
-            const balanceElement = document.getElementById('user-balance');
-            if (balanceElement) {
-                // Format the number with commas and update the DOM
-                balanceElement.textContent = userBalance.toLocaleString();
-            }
-        }
-
-        // --- Core View Switching Logic ---
-        function showView(view) {
-            landingPage.classList.add('hidden');
-            dashboard.classList.add('hidden');
-            tasksView.classList.add('hidden');
-            postTaskView.classList.add('hidden');
-            
-            if (view === 'dashboard') {
-                dashboard.classList.remove('hidden');
-                renderAcceptedTasks();
-                updateBalanceDisplay(); 
-            } else if (view === 'tasks-view') {
-                tasksView.classList.remove('hidden');
-                renderAvailableTasks(); // Render tasks with current filters/sort
-            } else if (view === 'post-task') {
-                postTaskView.classList.remove('hidden');
-            } else {
-                landingPage.classList.remove('hidden');
-            }
-            lucide.createIcons();
-        }
-
-        function updateAuthStateUI() {
-            if (isLoggedIn) {
-                navLoggedOut.classList.add('hidden');
-                navLoggedIn.classList.remove('hidden');
-                mobileLoginBtn.classList.add('hidden');
-                mobileSignupBtn.classList.add('hidden');
-                mobileLogoutBtn.classList.remove('hidden');
-                showView('dashboard');
-
-            } else {
-                navLoggedOut.classList.remove('hidden');
-                navLoggedIn.classList.add('hidden');
-                mobileLoginBtn.classList.remove('hidden');
-                mobileSignupBtn.classList.remove('hidden');
-                mobileLogoutBtn.classList.add('hidden');
-                showView('landing-page');
-            }
-            updateTaskCounts();
-        }
-        
-        function updateTaskCounts() {
-            availableTasksCount.textContent = availableTasks.length.toLocaleString();
-        }
-
-        // --- Authentication Handlers (Simulated) ---
-        
-        function handleAuth(event) {
-            event.preventDefault(); 
-            authErrorMessage.classList.add('hidden');
-
-            const emailInput = document.getElementById('email').value.trim();
-            const passwordInput = document.getElementById('password').value.trim();
-            const passkeyInput = document.getElementById('passkey-id').value.trim();
-            
-            const isSigningUp = currentMode === 'Sign Up';
-
-            if (isSigningUp) {
-                // SIGN UP LOGIC
-                if (passkeyInput.length < 12) {
-                    showAuthError("Passkey Fingerprint ID must be at least 12 characters long.");
-                    return;
-                }
-                if (users.some(user => user.email === emailInput)) {
-                    showAuthError("An account with this email already exists. Please log in.");
-                    return;
-                }
-                
-                // Simulate new user creation
-                users.push({
-                    email: emailInput,
-                    password: passwordInput,
-                    passkey: passkeyInput
                 });
 
-                showAuthError("Account created successfully! Logging you in...", "success");
-                
-            } else {
-                // LOGIN LOGIC
-                const user = users.find(u => u.email === emailInput && u.password === passwordInput);
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                loadingIndicator.textContent = `Error initializing Firebase: ${error.message}`;
+                showMessage(`Error: ${error.message}`, true);
+            }
+        }
 
-                if (!user) {
-                    showAuthError("Invalid email or password. Please try again.");
-                    return;
+        // --- Data Handling ---
+
+        function startDataListeners(uid) {
+            // 1. Listen to Private Config (Title, adminSecretKey, etc.)
+            onSnapshot(getConfigDocRef(uid), (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    mainTitleInput.value = data.mainTitle || '';
+
+                    if (data.adminSecretKey) {
+                        adminSecretKey = data.adminSecretKey;
+                    }
+                } else {
+                    mainTitleInput.value = "Picotask: Your Tiny Task Manager";
                 }
-                
-                showAuthError("Login successful!", "success");
-            }
-            
-            // Finalize login (common to both success cases)
-            setTimeout(() => {
-                isLoggedIn = true;
-                userBalance = 0; 
-                document.getElementById('tasks-completed').textContent = '0';
-                updateBalanceDisplay(); 
-
-                // Reset form fields
-                document.getElementById('email').value = '';
-                document.getElementById('password').value = '';
-                document.getElementById('passkey-id').value = '';
-
-                closeModal('auth');
-                updateAuthStateUI();
-            }, 500);
-        }
-
-        function showAuthError(message, type = 'error') {
-            authErrorMessage.textContent = message;
-            authErrorMessage.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700');
-            if (type === 'success') {
-                authErrorMessage.classList.add('bg-green-100', 'text-green-700');
-            } else {
-                authErrorMessage.classList.add('bg-red-100', 'text-red-700');
-            }
-        }
-
-        function handleLogout() {
-            isLoggedIn = false;
-            userBalance = 0;
-            document.getElementById('tasks-completed').textContent = '0';
-            
-            // Clear simulated task state on logout
-            acceptedTasks = [];
-            availableTasks = [];
-            taskIdCounter = 0; 
-
-            updateAuthStateUI();
-            updateBalanceDisplay();
-        }
-        
-        // --- Navigation Toggle Script ---
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-        
-        function hideMobileMenu() {
-            mobileMenu.classList.add('hidden');
-        }
-
-        // --- Modal Control Functions (Generic Display) ---
-        function toggleModalDisplay(modalElement, contentElement, show) {
-            if (show) {
-                modalElement.classList.remove('hidden');
-                document.body.style.overflow = 'hidden'; 
-                setTimeout(() => {
-                    modalElement.classList.add('opacity-100');
-                    contentElement.classList.remove('scale-95', 'opacity-0');
-                    lucide.createIcons();
-                }, 10);
-            } else {
-                contentElement.classList.add('scale-95', 'opacity-0');
-                modalElement.classList.remove('opacity-100');
-                setTimeout(() => {
-                    modalElement.classList.add('hidden');
-                    document.body.style.overflow = 'auto'; 
-                }, 300);
-            }
-        }
-
-        function closeModal(type) {
-            const currentModal = type === 'auth' ? authModal : actionModal;
-            const currentContent = type === 'auth' ? authModalContent : actionModalContent;
-            
-            // Reset auth modal view to default login form
-            authFormContainer.classList.remove('hidden');
-            recoveryContainer.classList.add('hidden');
-
-            toggleModalDisplay(currentModal, currentContent, false);
-        }
-
-        // Close modal when clicking outside
-        [authModal, actionModal].forEach(modalElement => {
-            modalElement.addEventListener('click', (e) => {
-                if (e.target === modalElement) {
-                    closeModal(modalElement.id.includes('auth') ? 'auth' : 'action');
-                }
+            }, (error) => {
+                console.error("Config Snapshot Error:", error);
+                showMessage("Failed to load private config.", true);
             });
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !authModal.classList.contains('hidden')) {
-                closeModal('auth');
-            } else if (e.key === 'Escape' && !actionModal.classList.contains('hidden')) {
-                closeModal('action');
-            }
-        });
 
+            // 2. Listen to Public Tasks
+            const tasksQuery = query(getTasksCollectionRef());
 
-        // --- Auth Modal Specifics ---
-        let currentMode = 'Login';
-        let recoveryEmail = null; // Store email during recovery process
-
-        const modalTitle = document.getElementById('modal-title');
-        const modalSwitchText = document.getElementById('modal-switch-text');
-        const modalSwitchLink = document.getElementById('modal-switch-link');
-        
-        function openAuthModal(mode) {
-            currentMode = mode;
-            updateAuthModalContent();
-            toggleModalDisplay(authModal, authModalContent, true);
-        }
-        
-        function toggleModalMode() {
-            currentMode = currentMode === 'Login' ? 'Sign Up' : 'Login';
-            updateAuthModalContent();
-            authErrorMessage.classList.add('hidden'); // Clear errors on switch
+            onSnapshot(tasksQuery, (snapshot) => {
+                const tasks = [];
+                snapshot.forEach(doc => {
+                    tasks.push({ id: doc.id, ...doc.data() });
+                });
+                renderTasks(tasks);
+            }, (error) => {
+                console.error("Tasks Snapshot Error:", error);
+                showMessage("Failed to load tasks.", true);
+            });
         }
 
-        function updateAuthModalContent() {
-            // Show main auth form, hide recovery
-            authFormContainer.classList.remove('hidden');
-            recoveryContainer.classList.add('hidden');
-
-            if (currentMode === 'Login') {
-                modalTitle.textContent = 'Login to Picotask';
-                modalSwitchText.textContent = 'New to Picotask?';
-                modalSwitchLink.textContent = 'Sign Up';
-                passkeyInputGroup.classList.add('hidden');
-                forgotPasswordBtn.classList.remove('hidden');
-            } else { // Sign Up
-                modalTitle.textContent = 'Create a Picotask Account';
-                modalSwitchText.textContent = 'Already have an account?';
-                modalSwitchLink.textContent = 'Login';
-                passkeyInputGroup.classList.remove('hidden');
-                forgotPasswordBtn.classList.add('hidden');
-            }
-        }
-        
-        // --- Password Recovery Flow ---
-        function showRecoveryFlow() {
-            authFormContainer.classList.add('hidden');
-            recoveryContainer.classList.remove('hidden');
-
-            document.getElementById('recovery-body').innerHTML = `
-                <p class="text-gray-600 mb-4">Please enter your email address to begin the Passkey verification process.</p>
-                <input type="email" id="recovery-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" placeholder="your@email.com" required>
-                <button onclick="verifyEmailForRecovery()" class="glossy-button w-full text-white px-4 py-2 rounded-xl text-lg font-semibold shadow-lg mt-4">
-                    Verify Email
-                </button>
-                <p id="recovery-message" class="mt-3 text-sm text-red-500 hidden"></p>
-            `;
-            lucide.createIcons();
-        }
-
-        function showRecoveryMessage(message, isError = true) {
-            const msgElement = document.getElementById('recovery-message');
-            msgElement.textContent = message;
-            msgElement.classList.remove('hidden', 'text-red-500', 'text-green-500');
-            if (isError) {
-                msgElement.classList.add('text-red-500');
-            } else {
-                msgElement.classList.add('text-green-500');
-            }
-        }
-
-        function verifyEmailForRecovery() {
-            const email = document.getElementById('recovery-email').value.trim();
-            const user = users.find(u => u.email === email);
-            
-            document.getElementById('recovery-message').classList.add('hidden');
-
-            if (!user) {
-                showRecoveryMessage("Account not found for this email.", true);
+        async function saveConfig(settings, silent = false) {
+            if (!db || !userId) {
+                showMessage("Database connection not ready.", true);
                 return;
             }
-            
-            recoveryEmail = email; // Store email globally for next step
-            
-            document.getElementById('recovery-body').innerHTML = `
-                <p class="text-lg font-semibold text-gray-800 flex items-center mb-4">
-                    <i data-lucide="fingerprint" class="w-6 h-6 mr-2 text-primary"></i>
-                    Verify with Passkey ID
-                </p>
-                <p class="text-gray-600 mb-4">Enter the 12-digit Passkey Fingerprint ID you set during sign up for ${email}.</p>
-                <input type="text" id="recovery-passkey" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" placeholder="12-digit recovery ID" required>
-                <button onclick="verifyPasskey()" class="glossy-button w-full text-white px-4 py-2 rounded-xl text-lg font-semibold shadow-lg mt-4">
-                    Verify Passkey
-                </button>
-                <p id="recovery-message" class="mt-3 text-sm text-red-500 hidden"></p>
-            `;
-            lucide.createIcons();
+            if (!silent) {
+                saveButton.textContent = 'Saving...';
+                saveButton.disabled = true;
+                saveMessage.classList.add('hidden');
+            }
+
+            try {
+                await setDoc(getConfigDocRef(userId), settings, { merge: true });
+
+                if (!silent) {
+                    saveMessage.textContent = 'Config updated successfully!';
+                    saveMessage.classList.remove('hidden');
+                    showMessage("Website config updated!");
+                }
+            } catch (e) {
+                console.error("Error saving config: ", e);
+                if (!silent) {
+                    saveMessage.textContent = 'Error saving config: ' + e.message;
+                    saveMessage.classList.remove('hidden');
+                    showMessage("Failed to save config.", true);
+                }
+            } finally {
+                if (!silent) {
+                    saveButton.textContent = 'Save Config';
+                    saveButton.disabled = false;
+                    setTimeout(() => saveMessage.classList.add('hidden'), 3000);
+                }
+            }
         }
 
-        function verifyPasskey() {
-            const passkey = document.getElementById('recovery-passkey').value.trim();
-            const user = users.find(u => u.email === recoveryEmail && u.passkey === passkey);
-
-            document.getElementById('recovery-message').classList.add('hidden');
-
-            if (!user) {
-                showRecoveryMessage("Invalid Passkey ID. Verification failed.", true);
+        async function changePassword() {
+            if (!db || !userId) {
+                showMessage("Database connection not ready.", true);
                 return;
             }
 
-            document.getElementById('recovery-body').innerHTML = `
-                <p class="text-lg font-semibold text-green-600 flex items-center mb-4">
-                    <i data-lucide="lock-open" class="w-6 h-6 mr-2"></i>
-                    Passkey Verified! Set New Password.
-                </p>
-                <p class="text-gray-600 mb-4">Enter your new secure password below.</p>
-                <input type="password" id="new-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150" placeholder="New Password" required>
-                <input type="password" id="confirm-new-password" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition duration-150 mt-3" placeholder="Confirm New Password" required>
-                <button onclick="resetPassword()" class="bg-red-500 hover:bg-red-600 text-white w-full px-4 py-2 rounded-xl text-lg font-semibold shadow-lg mt-4">
-                    Reset Password
-                </button>
-                <p id="recovery-message" class="mt-3 text-sm text-red-500 hidden"></p>
-            `;
-            lucide.createIcons();
-        }
+            const current = currentPasswordInput.value;
+            const newPass = newPasswordInput.value;
 
-        function resetPassword() {
-            const newPass = document.getElementById('new-password').value.trim();
-            const confirmPass = document.getElementById('confirm-new-password').value.trim();
-            
-            document.getElementById('recovery-message').classList.add('hidden');
+            passwordChangeMessage.classList.add('hidden');
+            changePasswordButton.textContent = 'Changing...';
+            changePasswordButton.disabled = true;
 
-            if (newPass.length < 8) {
-                showRecoveryMessage("Password must be at least 8 characters.", true);
-                return;
-            }
-            if (newPass !== confirmPass) {
-                showRecoveryMessage("Passwords do not match.", true);
+            if (current !== adminSecretKey) {
+                passwordChangeMessage.textContent = 'Error: Current password is incorrect.';
+                passwordChangeMessage.className = 'mt-2 text-sm text-red-600';
+                passwordChangeMessage.classList.remove('hidden');
+                changePasswordButton.textContent = 'Change Password';
+                changePasswordButton.disabled = false;
                 return;
             }
 
-            // Update the user's password in the simulated database
-            const userIndex = users.findIndex(u => u.email === recoveryEmail);
-            if (userIndex !== -1) {
-                users[userIndex].password = newPass;
-            }
-
-            document.getElementById('recovery-body').innerHTML = `
-                <p class="text-2xl font-bold text-green-600 flex items-center">
-                    <i data-lucide="check-circle" class="w-8 h-8 mr-3"></i>
-                    Password Reset Complete!
-                </p>
-                <p class="text-gray-700">You can now log in with your new password.</p>
-                <button onclick="closeModal('auth'); openAuthModal('Login');" class="glossy-button w-full text-white px-4 py-3 rounded-xl text-lg font-semibold shadow-lg mt-4">
-                    Go to Login
-                </button>
-            `;
-            recoveryEmail = null;
-            lucide.createIcons();
-        }
-
-        // --- Payment/Withdrawal Logic ---
-
-        const BINANCE_ID = "0x30dbdbd67af3e73f5188653caf213e2dd754218f";
-        const BKASH_NUMBER = "01776000890";
-        const FACEBOOK_ID = "PicotaskOfficialSupport"; 
-
-        function formatPaymentDetail(label, value, isCrypto) {
-            const icon = isCrypto ? 'wallet' : 'phone';
-            return `
-                <div class="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-                    <p class="text-sm font-semibold text-gray-700 mb-1 flex items-center">
-                        <i data-lucide="${icon}" class="w-4 h-4 mr-2 text-primary"></i>
-                        ${label}
-                    </p>
-                    <div class="flex justify-between items-center space-x-2">
-                        <code class="text-xs sm:text-sm text-gray-800 break-all" id="value-${label.replace(/\s/g, '-')}" >${value}</code>
-                        <button onclick="copyToClipboard('${value}', this)" data-context="payment" class="flex items-center text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition duration-150">
-                            <i data-lucide="copy" class="w-3 h-3 mr-1"></i> Copy
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-        
-        function showPostTaskPayment(newTask) {
-            const totalBudget = newTask.price * newTask.quantity;
-            actionModalTitle.textContent = 'Finalize Task Payment';
-            actionModalBody.innerHTML = `
-                <p class="text-lg text-primary font-semibold flex items-center">
-                    <i data-lucide="bell" class="w-6 h-6 mr-2"></i>
-                    ACTION REQUIRED: Send payment to launch your task.
-                </p>
-                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                    <p class="text-sm font-medium text-gray-500">Task: ${newTask.title}</p>
-                    <p class="text-xl font-bold text-gray-800">Total Budget: ৳ ${totalBudget.toLocaleString()} Taka</p>
-                    <p class="text-sm text-gray-500">${newTask.quantity} workers needed at ৳${newTask.price} per worker.</p>
-                </div>
-
-                <p class="text-gray-600">Please send the total budget using one of the methods below. Your task will be published within minutes of confirmation.</p>
-                
-                <h4 class="text-xl font-bold text-gray-800 mt-4">Payment Options:</h4>
-                
-                ${formatPaymentDetail('Binance ID (Crypto Address)', BINANCE_ID, true)}
-                ${formatPaymentDetail('Bkash Number (Taka)', BKASH_NUMBER, false)}
-                
-                <p class="mt-4 text-sm text-red-500">
-                    **IMPORTANT**: After sending payment, message the Transaction ID to the Facebook Support link in the footer to expedite activation.
-                </p>
-                <button onclick="simulateTaskActivation(event, ${newTask.id}, ${JSON.stringify(newTask).split('"').join("'")})" class="bg-green-500 hover:bg-green-600 text-white w-full px-4 py-3 rounded-xl text-lg font-semibold shadow-lg mt-4 flex items-center justify-center">
-                    <i data-lucide="rocket" class="w-5 h-5 mr-2"></i> Confirm Payment & Launch Task
-                </button>
-            `;
-            toggleModalDisplay(actionModal, actionModalContent, true);
-        }
-        
-        function showWithdrawInstructions() {
-            actionModalTitle.textContent = 'Withdrawal Request (Min ৳50)';
-            actionModalBody.innerHTML = `
-                <p class="text-lg text-green-600 font-semibold flex items-center">
-                    <i data-lucide="send" class="w-6 h-6 mr-2"></i>
-                    Final Step: Initiate Withdrawal via Facebook
-                </p>
-                <p class="text-gray-600">
-                    Due to external payment gateways, all withdrawal requests (minimum <span class="font-bold text-primary">৳50 Taka</span>) must be finalized by messaging our official Facebook ID.
-                </p>
-
-                <div class="p-4 bg-blue-50 rounded-xl border border-blue-200 text-center">
-                    <p class="text-lg font-bold text-blue-700 mb-2">
-                        Message this Facebook ID:
-                    </p>
-                    <p class="text-2xl font-extrabold text-blue-900">${FACEBOOK_ID}</p>
-                    <a href="https://facebook.com/${FACEBOOK_ID}" target="_blank" class="mt-3 glossy-button inline-flex items-center text-white px-4 py-2 rounded-lg font-semibold shadow-lg transition">
-                        <i data-lucide="facebook" class="w-5 h-5 mr-2"></i>
-                        Go to Facebook Support
-                    </a>
-                </div>
-
-                <p class="mt-4 text-sm text-gray-500">
-                    Include your Picotask email/ID and requested withdrawal amount in the message.
-                </p>
-            `;
-            toggleModalDisplay(actionModal, actionModalContent, true);
-        }
-        
-        // --- Task Creation Logic ---
-
-        // Simulated function to finalize task after "payment"
-        function simulateTaskActivation(event, taskId, taskDataJson) {
-            const task = JSON.parse(taskDataJson.split("'").join('"'));
-
-            closeModal('action');
-
-            // Add the new task to the available tasks list
-            availableTasks.push(task);
-            
-            actionModalTitle.textContent = 'Task Launched!';
-            actionModalBody.innerHTML = `
-                <p class="text-2xl font-bold text-green-600 flex items-center">
-                    <i data-lucide="send" class="w-8 h-8 mr-3"></i>
-                    Your Task is Live!
-                </p>
-                <p class="text-lg text-gray-700">
-                    Your task is now active and available for thousands of workers worldwide. You will receive notifications as workers submit proof.
-                </p>
-                <p class="text-sm text-gray-500 mt-4">
-                    The task is now visible on the **Tasks** page.
-                </p>
-                <button onclick="closeModal('action'); showView('tasks-view');" class="glossy-button w-full text-white px-4 py-2 rounded-xl text-lg font-semibold shadow-lg mt-4">
-                    View Task Feed
-                </button>
-            `;
-            toggleModalDisplay(actionModal, actionModalContent, true);
-            
-            updateTaskCounts();
-        }
-
-        function submitTaskForPayment(event) {
-            event.preventDefault();
-
-            formErrorMessage.classList.add('hidden');
-            
-            const title = document.getElementById('task-title').value.trim();
-            const category = document.getElementById('task-category').value;
-            const price = parseInt(document.getElementById('task-price').value, 10);
-            const time = document.getElementById('task-time').value; // This is the minutes value now
-            const quantity = parseInt(document.getElementById('task-quantity').value, 10);
-            const description = document.getElementById('task-description').value.trim();
-
-            let error = '';
-
-            if (title.length < 10) {
-                error = 'Task Title must be at least 10 characters long.';
-            } else if (!category) {
-                error = 'Please select a Task Category.';
-            } 
-            else if (isNaN(price) || price < 1 || price > 1000) {
-                error = 'Payout Price must be between ৳1 and ৳1,000.';
-            } 
-            else if (isNaN(quantity) || quantity < 1) {
-                error = 'Quantity must be at least 1 worker.';
-            } else if (description.length < 50) {
-                error = 'Detailed instructions must be at least 50 characters long.';
-            }
-
-            if (error) {
-                formErrorMessage.textContent = error;
-                formErrorMessage.classList.remove('hidden');
+            if (newPass.length < 6) {
+                passwordChangeMessage.textContent = 'Error: New password must be at least 6 characters long.';
+                passwordChangeMessage.className = 'mt-2 text-sm text-red-600';
+                passwordChangeMessage.classList.remove('hidden');
+                changePasswordButton.textContent = 'Change Password';
+                changePasswordButton.disabled = false;
                 return;
             }
 
-            // Increment the global counter for a unique ID
-            taskIdCounter++; 
+            try {
+                await updateDoc(getConfigDocRef(userId), {
+                    adminSecretKey: newPass
+                });
 
-            // Create a temporary task object to pass to the payment modal
-            const newTaskData = {
-                id: taskIdCounter,
-                title,
-                category,
-                price,
-                time: `~${time} min`,
-                minutes: parseInt(time, 10),
-                quantity,
-                description,
-                days_available: 7 // New requirement
+                passwordChangeMessage.textContent = 'Password changed successfully! The new password is required for subsequent logins.';
+                passwordChangeMessage.className = 'mt-2 text-sm text-green-600';
+                passwordChangeMessage.classList.remove('hidden');
+                showMessage("Admin password successfully changed!");
+
+                currentPasswordInput.value = '';
+                newPasswordInput.value = '';
+
+            } catch (e) {
+                console.error("Error changing password: ", e);
+                passwordChangeMessage.textContent = 'Error saving new password: ' + e.message;
+                passwordChangeMessage.className = 'mt-2 text-sm text-red-600';
+                passwordChangeMessage.classList.remove('hidden');
+            } finally {
+                changePasswordButton.textContent = 'Change Password';
+                changePasswordButton.disabled = false;
+                setTimeout(() => passwordChangeMessage.classList.add('hidden'), 5000);
+            }
+        }
+
+        window.handleTaskAction = async function(taskId, status) {
+            if (!db) {
+                showMessage("Database connection not ready.", true);
+                return;
+            }
+
+            try {
+                await updateDoc(getTaskDocRef(taskId), {
+                    status: status,
+                    reviewedBy: userId,
+                    reviewedAt: new Date().toISOString()
+                });
+                showMessage(`Task ${taskId} set to ${status}!`);
+
+            } catch (e) {
+                console.error(`Error setting task status to ${status}:`, e);
+                showMessage(`Failed to ${status} task.`, true);
+            }
+        }
+
+        // --- Task Details Modal Logic ---
+
+        function showTaskDetails(task) {
+            modalDetailsContent.innerHTML = ''; // Clear previous content
+
+            // Function to safely display data
+            const detailItem = (label, value) => {
+                const div = document.createElement('div');
+                div.className = "p-3 bg-gray-50 rounded-lg";
+                div.innerHTML = `<p class="text-xs font-semibold uppercase text-indigo-600">${label}</p><p class="mt-1 whitespace-pre-wrap">${value || 'N/A'}</p>`;
+                return div;
             };
 
-            // Reset the form
-            document.getElementById('task-post-form').reset();
+            // Order and display key fields
+            modalDetailsContent.appendChild(detailItem("Task Title", task.title));
+            modalDetailsContent.appendChild(detailItem("Description", task.description));
+            modalDetailsContent.appendChild(detailItem("Requester Name (Mock Field)", task.requesterName || 'Unknown'));
+            modalDetailsContent.appendChild(detailItem("Status", (task.status || 'pending').toUpperCase()));
+            modalDetailsContent.appendChild(detailItem("Submitted At", new Date(task.createdAt || Date.now()).toLocaleString()));
             
-            // Show the payment instructions modal
-            showPostTaskPayment(newTaskData);
+            if (task.reviewedBy) {
+                modalDetailsContent.appendChild(detailItem("Reviewed By User ID", task.reviewedBy));
+                modalDetailsContent.appendChild(detailItem("Reviewed At", new Date(task.reviewedAt || Date.now()).toLocaleString()));
+            }
+            
+            // Show the modal
+            taskDetailsModal.classList.remove('invisible', 'opacity-0');
+            taskDetailsModal.classList.add('visible', 'opacity-100');
+            document.querySelector('#taskDetailsModal .modal-content').classList.remove('translate-y-4');
+            document.querySelector('#taskDetailsModal .modal-content').classList.add('translate-y-0');
         }
 
-        // --- Task Rendering, Filtering, and Sorting Logic ---
+        window.showTaskDetails = showTaskDetails; // Make available globally for inline onclick
 
-        // Helper function to convert the 'time' value back to a display string if needed
-        function getMinutesDisplay(minutes) {
-             return minutes === 5 ? '~5 minutes' : 
-                    minutes === 10 ? '~10 minutes' : 
-                    minutes === 15 ? '~15 minutes' : 
-                    minutes === 20 ? '~20 minutes' : 
-                    minutes === 30 ? '~30 minutes' : 
-                    `~${minutes} min`;
+        function hideTaskDetails() {
+            // Hide the modal
+            taskDetailsModal.classList.add('opacity-0');
+            document.querySelector('#taskDetailsModal .modal-content').classList.add('translate-y-4');
+            setTimeout(() => {
+                taskDetailsModal.classList.add('invisible');
+                document.querySelector('#taskDetailsModal .modal-content').classList.remove('translate-y-0');
+            }, 300); // Wait for transition to complete
         }
 
-        function renderAvailableTasks() {
-            // 1. Get current filter and sort values
-            const currentFilter = filterCategory.value;
-            const currentSort = sortBy.value;
 
-            // 2. Filter tasks
-            let tasksToRender = availableTasks.filter(task => {
-                if (currentFilter === 'All') {
-                    return true;
-                }
-                return task.category === currentFilter;
-            });
-            
-            // 3. Sort tasks
-            tasksToRender.sort((a, b) => {
-                switch (currentSort) {
-                    case 'price-desc':
-                        return b.price - a.price; // Highest price first
-                    case 'price-asc':
-                        return a.price - b.price; // Lowest price first
-                    case 'time-asc':
-                        return a.minutes - b.minutes; // Quickest time first
-                    case 'time-desc':
-                        return b.minutes - a.minutes; // Longest time first
-                    case 'default':
-                    default:
-                        return a.id - b.id; // Default, by creation order
-                }
-            });
+        // --- UI Rendering ---
 
-            // 4. Render the filtered and sorted list
-            availableTasksList.innerHTML = ''; 
-            
-            if (tasksToRender.length === 0) {
-                availableTasksList.innerHTML = `
-                    <p class="text-gray-500 italic p-4 text-center">
-                        No tasks match the filter "${currentFilter}". ${currentFilter === 'All' ? 'Be the first to post a task!' : 'Try changing your filter.'}
-                    </p>`;
+        function renderTasks(tasks) {
+            tasksList.innerHTML = '';
+            if (tasks.length === 0) {
+                tasksList.innerHTML = '<p class="text-gray-500 p-4 bg-white rounded-lg">No tasks currently submitted for review.</p>';
                 return;
             }
 
-            tasksToRender.forEach(task => {
-                const taskElement = document.createElement('div');
-                taskElement.className = 'task-list-item p-4 border-b border-gray-100 hover:bg-yellow-50 rounded-lg transition';
-                
-                // Use the 'minutes' value stored in the object to ensure correct display after sorting
-                const timeDisplay = getMinutesDisplay(task.minutes); 
-                
-                taskElement.innerHTML = `
-                    <div class="space-y-1">
-                        <h3 class="text-lg font-semibold text-gray-800">${task.title}</h3>
-                        <p class="text-sm text-gray-500">
-                            <span class="bg-gray-200 text-xs font-medium px-2 py-0.5 rounded">${task.category}</span>
-                            <span class="ml-3"><i data-lucide="clock" class="w-4 h-4 inline-block mr-1"></i> ${timeDisplay}</span>
-                        </p>
-                    </div>
-                    <span class="text-2xl font-bold text-primary text-right sm:text-left">৳ ${task.price}</span>
-                    <button onclick="acceptTask(${task.id})" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition flex items-center justify-center">
-                        <i data-lucide="check" class="w-5 h-5 mr-2"></i> Accept
-                    </button>
-                `;
-                availableTasksList.appendChild(taskElement);
+            tasks.sort((a, b) => {
+                const statusOrder = { 'pending': 0, 'rejected': 1, 'approved': 2 };
+                if (statusOrder[a.status] !== statusOrder[b.status]) {
+                    return statusOrder[a.status] - statusOrder[b.status];
+                }
+                return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
             });
-            lucide.createIcons(); 
-        }
 
+            tasks.forEach(task => {
+                const statusText = (task.status || 'pending').toUpperCase();
 
-        function renderAcceptedTasks() {
-            acceptedTasksList.innerHTML = ''; 
-
-            if (acceptedTasks.length === 0) {
-                acceptedTasksList.innerHTML = '<p class="text-gray-500 italic">No tasks currently accepted. Go find one!</p>';
-                return;
-            }
-
-            acceptedTasks.forEach(task => {
                 const taskElement = document.createElement('div');
-                taskElement.className = 'task-list-item p-4 border-b border-gray-100 bg-blue-50/50 rounded-lg cursor-pointer hover:bg-blue-100 transition';
-                taskElement.onclick = () => openTaskDetails(task.id); 
+                taskElement.className = `card bg-white p-5 rounded-xl border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center task-item status-${task.status || 'pending'}`;
+
+                let actionButtons = '';
+                if (task.status === 'pending' || !task.status) {
+                    actionButtons = `
+                        <div class="flex space-x-2 mt-3 sm:mt-0 flex-shrink-0">
+                            <button onclick="showTaskDetails(${JSON.stringify(task).replace(/"/g, '&quot;')})" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-3 rounded-lg text-xs shadow-md">
+                                Details
+                            </button>
+                            <button onclick="handleTaskAction('${task.id}', 'approved')" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-3 rounded-lg text-xs shadow-md">
+                                Approve
+                            </button>
+                            <button onclick="handleTaskAction('${task.id}', 'rejected')" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-3 rounded-lg text-xs shadow-md">
+                                Reject
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    actionButtons = `
+                        <div class="flex space-x-2 mt-3 sm:mt-0 flex-shrink-0">
+                             <button onclick="showTaskDetails(${JSON.stringify(task).replace(/"/g, '&quot;')})" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-3 rounded-lg text-xs shadow-md">
+                                Details
+                            </button>
+                            <span class="text-sm font-bold text-gray-500 py-2 px-3 rounded-lg bg-gray-100 flex-shrink-0">
+                                Reviewed (${statusText})
+                            </span>
+                        </div>
+                    `;
+                }
 
                 taskElement.innerHTML = `
-                    <div class="space-y-1">
-                        <h3 class="text-lg font-semibold text-gray-800">${task.title}</h3>
-                        <p class="text-sm text-blue-600 font-medium">
-                            <i data-lucide="rotate-cw" class="w-4 h-4 inline-block mr-1"></i> Click to View Instructions
-                        </p>
+                    <div class="flex-grow min-w-0">
+                        <span class="text-xs font-semibold uppercase px-2 py-1 rounded-full ${task.status === 'approved' ? 'bg-green-100 text-green-700' : task.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${statusText}</span>
+                        <p class="text-lg font-bold text-gray-800 mt-1 truncate">${task.title || 'Untitled Task'}</p>
+                        <p class="text-sm text-gray-500 truncate mt-0.5">${task.description || 'No description provided.'}</p>
+                        <p class="text-xs text-gray-400 mt-1">Submitted: ${new Date(task.createdAt).toLocaleString()}</p>
                     </div>
-                    <span class="text-2xl font-bold text-primary text-right sm:text-left">৳ ${task.price}</span>
-                    <span class="text-gray-500 text-sm font-medium text-right sm:text-left">${task.category}</span>
+                    ${actionButtons}
                 `;
-                acceptedTasksList.appendChild(taskElement);
+                tasksList.appendChild(taskElement);
             });
-            lucide.createIcons();
         }
 
-        function acceptTask(taskId) {
-            const taskIndex = availableTasks.findIndex(t => t.id === taskId);
-            
-            if (taskIndex !== -1) {
-                const taskToMove = availableTasks.splice(taskIndex, 1)[0];
-                acceptedTasks.push(taskToMove);
-                
-                renderAvailableTasks();
-                renderAcceptedTasks();
-                updateTaskCounts();
-                
-                showView('dashboard');
-                
-            } else {
-                console.error('Task not found:', taskId);
-            }
-        }
+        // --- Event Listeners and Initial Load ---
 
-        function completeTask(taskId) {
-            const taskIndex = acceptedTasks.findIndex(t => t.id === taskId);
-            
-            if (taskIndex !== -1) {
-                const task = acceptedTasks.splice(taskIndex, 1)[0];
+        // Login form submission
+        loginForm.addEventListener('submit', handleLogin);
 
-                closeModal('action');
+        // Configuration form submission
+        contentForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newSettings = {
+                mainTitle: mainTitleInput.value.trim()
+            };
+            saveConfig(newSettings);
+        });
 
-                userBalance += task.price; 
-                updateBalanceDisplay(); 
+        // Password change form submission
+        passwordChangeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            changePassword();
+        });
 
-                const tasksCompleted = parseInt(document.getElementById('tasks-completed').textContent, 10);
-                document.getElementById('tasks-completed').textContent = tasksCompleted + 1;
-                
-                renderAcceptedTasks();
-                
-                actionModalTitle.textContent = 'Task Submitted!';
-                actionModalBody.innerHTML = `
-                    <p class="text-2xl font-bold text-green-600 flex items-center">
-                        <i data-lucide="trophy" class="w-8 h-8 mr-3"></i>
-                        Success! Task Proof Submitted.
-                    </p>
-                    <p class="text-lg text-gray-700">
-                        "**${task.title}**" has been submitted for review. Once verified by the employer, **৳${task.price}** will be added to your balance.
-                    </p>
-                    <p class="text-sm text-gray-500 mt-4">
-                        (Note: The balance update is simulated instantly for demonstration purposes.)
-                    </p>
-                    <button onclick="closeModal('action')" class="glossy-button w-full text-white px-4 py-2 rounded-xl text-lg font-semibold shadow-lg mt-4">
-                        Continue Working
-                    </button>
-                `;
-                toggleModalDisplay(actionModal, actionModalContent, true);
-                
-            } else {
-                console.error('Accepted task not found:', taskId);
-            }
-        }
-
-        function openTaskDetails(taskId) {
-            const task = acceptedTasks.find(t => t.id === taskId);
-
-            if (!task) {
-                console.error('Task details not found.');
-                return;
-            }
-
-            actionModalTitle.textContent = 'Task Instructions';
-            actionModalBody.innerHTML = `
-                <div class="space-y-4">
-                    <h2 class="text-2xl font-bold text-primary">${task.title}</h2>
-                    <div class="flex flex-wrap gap-4 text-sm font-medium">
-                        <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full flex items-center">
-                            <i data-lucide="circle-dollar-sign" class="w-4 h-4 mr-1"></i> Payout: ৳${task.price}
-                        </span>
-                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center">
-                            <i data-lucide="tag" class="w-4 h-4 mr-1"></i> Category: ${task.category}
-                        </span>
-                        <span class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center">
-                            <i data-lucide="clock" class="w-4 h-4 mr-1"></i> Time: ${task.time}
-                        </span>
-                        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full flex items-center">
-                            <i data-lucide="calendar" class="w-4 h-4 mr-1"></i> Available: ${task.days_available} Days
-                        </span>
-                    </div>
-
-                    <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mt-4">Detailed Instructions</h3>
-                    <p class="text-gray-600 leading-relaxed">${task.description}</p>
-
-                    <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mt-4">Submit Your Proof</h3>
-                    <p class="text-sm text-red-500 mb-2">
-                        Upload your proof (e.g., link, text, image screenshot) here.
-                    </p>
-                    <textarea id="proof-submission-area" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition" placeholder="Paste your completion code, link, or description of proof here..."></textarea>
-                    
-                    <button onclick="completeTask(${task.id})" class="glossy-button w-full text-white px-4 py-3 rounded-xl text-lg font-semibold shadow-lg flex items-center justify-center mt-4">
-                        <i data-lucide="send" class="w-5 h-5 mr-2"></i> Submit Proof & Complete Task
-                    </button>
-                    <button onclick="copyToClipboard('${task.title}', this)" data-context="details" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition w-full flex items-center justify-center">
-                        <i data-lucide="clipboard" class="w-5 h-5 mr-2"></i> Copy Task Title/ID
-                    </button>
-                </div>
-            `;
-            toggleModalDisplay(actionModal, actionModalContent, true);
-        }
-
-
-        // Initialize all components and UI state on load
-        window.onload = () => {
-            lucide.createIcons();
-            updateBalanceDisplay(); 
-            updateAuthStateUI(); 
-            // Set initial value for task count
-            updateTaskCounts(); 
-        };
-
+        // Start the process
+        window.onload = initializeFirebase;
     </script>
 
 </body>
 </html>
+
+
